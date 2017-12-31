@@ -1,8 +1,9 @@
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
+import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.ml.classification.{LogisticRegression, NaiveBayes}
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
+import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.sql
 import org.apache.spark.sql.functions._
 object Main {
@@ -32,7 +33,7 @@ object Main {
       //delete old column
       completeDF = completeDF.drop("hash_" + row)
     }
-    
+
     completeDF
   }
   def main(args: Array[String]): Unit = {
@@ -68,7 +69,14 @@ object Main {
     // Split the data into training and test sets (30% held out for testing)
     val Array(trainingData, testData) = completeDF.randomSplit(Array(0.7, 0.3), seed = 1234L)
 
-    val LRmodel = new LogisticRegression()
+    //trainingData.write.json("./data/trainSaved.json")
+    //testData.write.json("./data/testSaved.json")
+
+
+    //val train = ss.read.option("header", "true").csv("./data/trainSaved.csv")
+    //val test = ss.read.option("header", "true").csv("./data/testSaved.csv")
+
+    val LRmodel = new LinearRegression()
       .setMaxIter(10000)
       .setRegParam(0.1)
       .setElasticNetParam(0.0)
@@ -81,7 +89,7 @@ object Main {
     predictionsLR.show(10)
 
     // Evaluate the model by finding the accuracy
-    val evaluatorNB = new MulticlassClassificationEvaluator()
+    val evaluatorNB = new RegressionEvaluator()
       .setLabelCol("label")
       .setPredictionCol("prediction")
       .setMetricName("accuracy")
