@@ -83,16 +83,7 @@ object Main {
     //val test = ss.read.option("header", "true").csv("./data/testSaved.csv")
   }
 
-  def startTraining(dataframe: sql.DataFrame) = {
-
-    saveDataFrame(dataframe)
-
-    /* ======================================================= */
-    /* ================== Regression ===================== */
-    /* ======================================================= */
-
-    println("BEFORE TRAINING")
-
+  def RunLinearRegression(dataframe: sql.DataFrame) = {
     // Split the data into training and test sets (30% held out for testing)
     val Array(trainingData, testData) = dataframe.randomSplit(Array(0.7, 0.3), seed = 1234L)
 
@@ -157,7 +148,16 @@ object Main {
     //Cast labels to double from string
     val completeDF = tokenizedDF.withColumn("label", 'label cast DoubleType)
 
-    startTraining(completeDF)
+    //Save the results to restart from this point
+    saveDataFrame(completeDF)
+
+    /* ======================================================= */
+    /* ================== Regression ===================== */
+    /* ======================================================= */
+
+    println("BEFORE TRAINING")
+
+    RunLinearRegression(completeDF)
 
    }
 }
