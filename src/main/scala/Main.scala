@@ -9,6 +9,7 @@ import org.apache.spark.sql.functions._
 object Main {
   Logger.getLogger("org").setLevel(Level.ERROR)
   Logger.getLogger("akka").setLevel(Level.ERROR)
+  
   def token_tfidf(dataframe: Dataset[Row], columns: Array[String]): sql.DataFrame  = {
     var completeDF:sql.DataFrame = dataframe
     for(row <- columns) {
