@@ -79,7 +79,7 @@ object Main {
   }
 
   //Tokenization and tfidf for string features
-  def token_tfidf(dataframe: Dataset[Row], columns: Array[String]): sql.DataFrame  = {
+  def text_preprocessing(dataframe: Dataset[Row], columns: Array[String]): sql.DataFrame  = {
     //global dataframe
     var completeDF:sql.DataFrame = dataframe
 
@@ -173,7 +173,7 @@ data.show()
     val fullSchemaDF = joinDatasets(ss)
 
     //Tokenization and tfidf for string features
-    val tokenizedDF = token_tfidf(fullSchemaDF, Array("product_title", "product_description", "name", "search_term", "value"))
+    val tokenizedDF = text_preprocessing(fullSchemaDF, Array("product_title", "product_description", "name", "search_term", "value"))
 
     //To cast to Double
     import org.apache.spark.sql.types._
