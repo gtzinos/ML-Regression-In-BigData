@@ -15,4 +15,5 @@ project/boot/
 project/plugins/project/
 .history
 .cache
+data/*
 .lib/
