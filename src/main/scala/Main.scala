@@ -92,6 +92,7 @@ object Main {
       completeDF = idf(completeDF, "hash_" + row, row)
     }
 
+    //Create all features column
     val assembler = new VectorAssembler().setInputCols(columns).setOutputCol("all_features")
     completeDF = assembler.transform(completeDF)
 
