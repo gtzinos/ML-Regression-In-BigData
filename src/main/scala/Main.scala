@@ -1,27 +1,37 @@
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
-import org.apache.spark.sql.{SparkSession}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.ml.classification.{LogisticRegression, NaiveBayes}
-import org.apache.spark.ml.feature.{Tokenizer, HashingTF, IDF}
+import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.sql.functions._
 
 object Main {
+
+  Logger.getLogger("org").setLevel(Level.ERROR)
+  Logger.getLogger("akka").setLevel(Level.ERROR)
+
   def main(args: Array[String]): Unit = {
 
     // Create the spark session first
     val ss = SparkSession.builder().master("local").appName("tfidfApp").getOrCreate()
+
+
     import ss.implicits._ // For implicit conversions like converting RDDs to DataFrames
-    val inputFile = "./reviews.csv"
-    //val currentDir = System.getProperty("user.dir")  // get the current directory
-    //val outputDir = "file://" + currentDir + "/output"
 
 
-    println("reading from input file: " + inputFile)
-    println
+    val trainFileName = "./data/train.csv"
+    val attributesFileName = "./data/attributes.csv"
+    val descriptionsFileName = "./data/product_descriptions.csv"
 
-    // Read the contents of the csv file in a dataframe
-    val basicDF = ss.read.option("header", "false").csv(inputFile)
-    basicDF.printSchema()
+    val trainDF = ss.read.option("header", "true").csv(trainFileName).createOrReplaceTempView("trainDF")
+    val attributesDF = ss.read.option("header", "true").csv(attributesFileName).createOrReplaceTempView("attributesDF")
+    val productsDescDF = ss.read.option("header", "true").csv(descriptionsFileName).createOrReplaceTempView("productsDescDF")
 
+    ss.sql("Select tr.*, attr.name, attr.value, pr.product_description from trainDF tr left outer join attributesDF attr on" +
+      " tr.product_uid == attr.product_uid left outer join productsDescDF pr on tr.product_uid == pr.product_uid").printSchema()
+
+
+/*
     // Rename the columns of the dataframe
     val newColumnNames = Seq("rId", "rText", "rLabel")
     val renamedDF = basicDF.toDF(newColumnNames: _*)
@@ -106,6 +116,6 @@ object Main {
 
     val accuracyLR = evaluatorNB.evaluate(predictionsLR)
     println("Accuracy of Logistic Regression: " + accuracyLR)
-
+*/
   }
 }
