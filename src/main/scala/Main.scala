@@ -1,5 +1,5 @@
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.feature.{HashingTF, IDF, StopWordsRemover, Tokenizer}
+import org.apache.spark.ml.feature._
 import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.sql
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
@@ -86,10 +86,10 @@ object Main {
     //Remove stop words
 
     for(row <- columns) {
-      completeDF = removeStopWords(completeDF, row, "stopwords_" + row)
-      completeDF = tokenized(completeDF, "stopwords_" + row, "token_" + row)
+      completeDF = tokenized(completeDF, row, "token_" + row)
+      completeDF = removeStopWords(completeDF, "token_" + row, "stopwords_" + row)
       completeDF = tf(completeDF, "token_" + row, "hash_" + row)
-      completeDF = idf(completeDF, "hash_" + row, "feature_" + row)
+      completeDF = idf(completeDF, "hash_" + row, row)
     }
 
     //Return dataframe
@@ -119,7 +119,7 @@ object Main {
       .setMaxIter(10000)
       .setRegParam(0.1)
       .setElasticNetParam(0.0)
-      .setFeaturesCol("feature_product_description")
+      .setFeaturesCol("all_features")
       .fit(trainingData)
 
     // Print the coefficients and intercept for linear regression
@@ -155,10 +155,6 @@ object Main {
     // Create the spark session first
     val ss = SparkSession.builder().master("local").appName("tfidfApp").getOrCreate()
 
-
-    val data = ss.read.format("libsvm").load("/usr/local/spark/data/mllib/sample_libsvm_data.txt")
-
-data.show()
     // For implicit conversions like converting RDDs to DataFrames
     import ss.implicits._
 
@@ -182,6 +178,9 @@ data.show()
 
     //Save the results to restart from this point
     saveDataFrame(completeDF)
+
+    val assembler = new VectorAssembler().setInputCols(Array("product_title", "product_description", "name", "search_term", "value")).setOutputCol("all_features")
+
 
     /* ======================================================= */
     /* ================== Regression ===================== */
