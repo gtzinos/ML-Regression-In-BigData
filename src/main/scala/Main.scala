@@ -88,7 +88,7 @@ object Main {
     for(row <- columns) {
       completeDF = tokenized(completeDF, row, "token_" + row)
       completeDF = removeStopWords(completeDF, "token_" + row, "stopwords_" + row)
-      completeDF = tf(completeDF, "token_" + row, "hash_" + row)
+      completeDF = tf(completeDF, "stopwords_" + row, "hash_" + row)
       completeDF = idf(completeDF, "hash_" + row, row)
     }
 
