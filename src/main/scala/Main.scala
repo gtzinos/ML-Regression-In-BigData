@@ -1,8 +1,9 @@
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
+import org.apache.spark.ml.feature.{HashingTF, IDF, StopWordsRemover, Tokenizer}
 import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.sql
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.ml.regression._
 object Main {
   Logger.getLogger("org").setLevel(Level.ERROR)
   Logger.getLogger("akka").setLevel(Level.ERROR)
@@ -33,37 +34,63 @@ object Main {
     fullSchemaDF
   }
 
+  def removeStopWords(dataframe: sql.Dataset[Row], inputColumn: String, outputColumn:String): sql.Dataset[Row] = {
+    val clear = new StopWordsRemover()
+      .setCaseSensitive(true)
+      .setStopWords(StopWordsRemover.loadDefaultStopWords("english"))
+      .setInputCol(inputColumn)
+      .setOutputCol(outputColumn)
+      .transform(dataframe)
+
+    val complete = clear.drop(inputColumn)
+
+    complete
+  }
+
+  def tokenized(dataframe: sql.Dataset[Row], inputColumn: String, outputColumn:String): sql.Dataset[Row] = {
+    val tokenizer = new Tokenizer().setInputCol(inputColumn).setOutputCol(outputColumn)
+
+    val transormed = tokenizer.transform(dataframe)
+    //delete old column
+    val tokenized = transormed.drop(inputColumn)
+
+    tokenized
+  }
+
+  def tf(dataframe: sql.Dataset[Row], inputColumn: String, outputColumn:String): sql.Dataset[Row] = {
+    val hashingTF = new HashingTF().setInputCol(inputColumn).setOutputCol(outputColumn)
+
+    val hashed = hashingTF.transform(dataframe)
+    //delete old column
+    val complete = hashed.drop(inputColumn)
+
+    complete
+  }
+
+  def idf(dataframe: sql.Dataset[Row], inputColumn: String, outputColumn:String) = {
+    val idf = new IDF().setInputCol(inputColumn).setOutputCol(outputColumn)
+    val idfM = idf.fit(dataframe)
+
+    val transformed = idfM.transform(dataframe)
+    //delete old column
+    val complete = transformed.drop(inputColumn)
+
+    complete
+  }
+
   //Tokenization and tfidf for string features
   def token_tfidf(dataframe: Dataset[Row], columns: Array[String]): sql.DataFrame  = {
     //global dataframe
     var completeDF:sql.DataFrame = dataframe
 
-    //Tokenization process
-    for(row <- columns) {
-      // Create tf-idf features
-      val tokenizer = new Tokenizer().setInputCol(row).setOutputCol("token_" + row)
-      completeDF = tokenizer.transform(completeDF)
-      //delete old column
-      completeDF = completeDF.drop(row)
-    }
+    //Remove stop words
 
-    //TF Process
     for(row <- columns) {
-      val hashingTF = new HashingTF().setInputCol("token_" + row).setOutputCol("hash_" + row)
-      completeDF = hashingTF.transform(completeDF)
-      //delete old column
-      completeDF = completeDF.drop("token_" + row)
+      completeDF = removeStopWords(completeDF, row, "stopwords_" + row)
+      completeDF = tokenized(completeDF, "stopwords_" + row, "token_" + row)
+      completeDF = tf(completeDF, "token_" + row, "hash_" + row)
+      completeDF = idf(completeDF, "hash_" + row, "feature_" + row)
     }
-
-    //IDF Process
-    for(row <- columns) {
-      val idf = new IDF().setInputCol("hash_" + row).setOutputCol("feature_" + row)
-      val idfM = idf.fit(completeDF)
-      completeDF = idfM.transform(completeDF)
-      //delete old column
-      completeDF = completeDF.drop("hash_" + row)
-    }
-
 
     //Return dataframe
     completeDF
@@ -124,9 +151,14 @@ object Main {
 
   //Main function
   def main(args: Array[String]): Unit = {
+
     // Create the spark session first
     val ss = SparkSession.builder().master("local").appName("tfidfApp").getOrCreate()
 
+
+    val data = ss.read.format("libsvm").load("/usr/local/spark/data/mllib/sample_libsvm_data.txt")
+
+data.show()
     // For implicit conversions like converting RDDs to DataFrames
     import ss.implicits._
 
