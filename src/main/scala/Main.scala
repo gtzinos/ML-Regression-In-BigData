@@ -10,6 +10,32 @@ object Main {
   Logger.getLogger("org").setLevel(Level.ERROR)
   Logger.getLogger("akka").setLevel(Level.ERROR)
 
+  def getFileName(path: String) = {
+    val paths: Array[String] = path.split("/")
+    val fileName = paths(paths.length-1).split('.')(0)
+
+    fileName
+  }
+
+  def importDatasets(session: SparkSession, datasets: Array[String]) = {
+    for(dataset: String <- datasets) {
+      val fileName = getFileName(dataset)
+      session.read.option("header", "true").csv(dataset).createOrReplaceTempView(fileName)
+    }
+  }
+
+  //Join 3 datasets (Products, Descriptions, Attributes)
+  def joinDatasets(session: SparkSession) : Dataset[Row]= {
+    val fullSchemaDF = session.sql("Select tr.product_title, tr.search_term, tr.relevance as label" +
+      " , IFNULL(attr.name, '') as name, IFNULL(attr.value, '') as value, pr.product_description from train tr left join attributes attr on" +
+      " tr.product_uid == attr.product_uid left join product_descriptions pr on tr.product_uid == pr.product_uid")
+
+    //Partition dataframe
+    fullSchemaDF.repartition(4)
+
+    fullSchemaDF
+  }
+
   //Tokenization and tfidf for string features
   def token_tfidf(dataframe: Dataset[Row], columns: Array[String]): sql.DataFrame  = {
     //global dataframe
@@ -46,49 +72,7 @@ object Main {
     completeDF
   }
 
-  //Main function
-  def main(args: Array[String]): Unit = {
-    // Create the spark session first
-    val ss = SparkSession.builder().master("local").appName("tfidfApp").getOrCreate()
-
-    // For implicit conversions like converting RDDs to DataFrames
-    import ss.implicits._
-
-    //Datasets files names
-    val trainFileName = "./data/train.csv"
-    val attributesFileName = "./data/attributes.csv"
-    val descriptionsFileName = "./data/product_descriptions.csv"
-
-    //Import datasets and create temp view
-    val trainDF = ss.read.option("header", "true").csv(trainFileName).createOrReplaceTempView("trainDF")
-    val attributesDF = ss.read.option("header", "true").csv(attributesFileName).createOrReplaceTempView("attributesDF")
-    val productsDescDF = ss.read.option("header", "true").csv(descriptionsFileName).createOrReplaceTempView("productsDescDF")
-
-    //Join 3 datasets
-    val fullSchemaDF = ss.sql("Select tr.product_title, tr.search_term, tr.relevance as label" +
-      " , IFNULL(attr.name, '') as name, IFNULL(attr.value, '') as value, pr.product_description from trainDF tr left join attributesDF attr on" +
-      " tr.product_uid == attr.product_uid left join productsDescDF pr on tr.product_uid == pr.product_uid")
-
-    //Partition dataframe
-    fullSchemaDF.repartition(4)
-
-    //Tokenization and tfidf for string features
-    val tokenizedDF = token_tfidf(fullSchemaDF, Array("product_title", "product_description", "name", "search_term", "value"))
-
-    //To cast to Double
-    import org.apache.spark.sql.types._
-    //Cast labels to double from string
-    val completeDF = tokenizedDF.withColumn("label", 'label cast DoubleType)
-
-    /* ======================================================= */
-    /* ================== Regression ===================== */
-    /* ======================================================= */
-
-    println("BEFORE TRAINING")
-
-    // Split the data into training and test sets (30% held out for testing)
-    val Array(trainingData, testData) = completeDF.randomSplit(Array(0.7, 0.3), seed = 1234L)
-
+  def saveDataFrame(frame: sql.DataFrame) = {
     /*
       Save and restore the merged dataset
     */
@@ -100,6 +84,20 @@ object Main {
     //TODO: restore dataset
     //val train = ss.read.option("header", "true").csv("./data/trainSaved.csv")
     //val test = ss.read.option("header", "true").csv("./data/testSaved.csv")
+  }
+
+  def startTraining(dataframe: sql.DataFrame) = {
+
+    saveDataFrame(dataframe)
+
+    /* ======================================================= */
+    /* ================== Regression ===================== */
+    /* ======================================================= */
+
+    println("BEFORE TRAINING")
+
+    // Split the data into training and test sets (30% held out for testing)
+    val Array(trainingData, testData) = dataframe.randomSplit(Array(0.7, 0.3), seed = 1234L)
 
     //Train dataset with linear regression algorithm
     val lrModel = new LinearRegression()
@@ -133,5 +131,36 @@ object Main {
 
     val accuracyLR = evaluatorNB.evaluate(predictionsLR)
     println("Accuracy of Logistic Regression: " + accuracyLR)*/
+
   }
+
+  //Main function
+  def main(args: Array[String]): Unit = {
+    // Create the spark session first
+    val ss = SparkSession.builder().master("local").appName("tfidfApp").getOrCreate()
+
+    // For implicit conversions like converting RDDs to DataFrames
+    import ss.implicits._
+
+    //Datasets files names
+    val trainFileName = "./data/train.csv"
+    val attributesFileName = "./data/attributes.csv"
+    val descriptionsFileName = "./data/product_descriptions.csv"
+
+    //Import datasets and create temp view
+    importDatasets(ss, Array(trainFileName, attributesFileName, descriptionsFileName))
+
+    val fullSchemaDF = joinDatasets(ss)
+
+    //Tokenization and tfidf for string features
+    val tokenizedDF = token_tfidf(fullSchemaDF, Array("product_title", "product_description", "name", "search_term", "value"))
+
+    //To cast to Double
+    import org.apache.spark.sql.types._
+    //Cast labels to double from string
+    val completeDF = tokenizedDF.withColumn("label", 'label cast DoubleType)
+
+    startTraining(completeDF)
+
+   }
 }
