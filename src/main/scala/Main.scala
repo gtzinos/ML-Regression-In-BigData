@@ -92,6 +92,9 @@ object Main {
       completeDF = idf(completeDF, "hash_" + row, row)
     }
 
+    val assembler = new VectorAssembler().setInputCols(columns).setOutputCol("all_features")
+    completeDF = assembler.transform(completeDF)
+
     //Return dataframe
     completeDF
   }
@@ -178,9 +181,6 @@ object Main {
 
     //Save the results to restart from this point
     saveDataFrame(completeDF)
-
-    val assembler = new VectorAssembler().setInputCols(Array("product_title", "product_description", "name", "search_term", "value")).setOutputCol("all_features")
-
 
     /* ======================================================= */
     /* ================== Regression ===================== */
