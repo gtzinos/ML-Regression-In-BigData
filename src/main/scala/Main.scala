@@ -119,7 +119,34 @@ object Main {
     val Array(trainingData, testData) = dataframe.randomSplit(Array(0.7, 0.3), seed = 1234L)
 
     //Train dataset with linear regression algorithm
-    val lrModel = new LinearRegression()
+        // Train a DecisionTree model.
+    val dt = new DecisionTreeRegressor()
+      .setLabelCol("label")
+      .setFeaturesCol("all_features")
+
+    // Chain indexer and tree in a Pipeline.
+
+    // Train model. This also runs the indexer.
+    val model = dt.fit(trainingData)
+
+    // Make predictions.
+    val predictions = model.transform(testData)
+
+    // Select example rows to display.
+    //predictions.select("prediction", "label", "features").show(5)
+
+    // Select (prediction, true label) and compute test error.
+    val evaluator = new RegressionEvaluator()
+      .setLabelCol("label")
+      .setPredictionCol("prediction")
+      .setMetricName("rmse")
+    val rmse = evaluator.evaluate(predictions)
+    println("Root Mean Squared Error (RMSE) on test data = " + rmse)
+
+    val treeModel = model.asInstanceOf[DecisionTreeRegressionModel]
+    println("Learned regression tree model:\n" + treeModel.toDebugString)
+
+    /*val lrModel = new LinearRegression()
       .setMaxIter(10000)
       .setRegParam(0.1)
       .setElasticNetParam(0.0)
@@ -136,7 +163,7 @@ object Main {
     trainingSummary.residuals.show()
     println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
     println(s"r2: ${trainingSummary.r2}")
-
+*/
     /*val predictionsLR = LRmodel.transform(testData)
 
     predictionsLR.printSchema()
