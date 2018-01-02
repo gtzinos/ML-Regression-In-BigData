@@ -4,6 +4,8 @@ import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.sql
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.ml.regression._
+import org.apache.spark.ml.evaluation.RegressionEvaluator
+
 object Main {
   Logger.getLogger("org").setLevel(Level.ERROR)
   Logger.getLogger("akka").setLevel(Level.ERROR)
