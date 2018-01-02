@@ -1,14 +1,13 @@
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.sql
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.ml.regression._
-import org.apache.spark.ml.evaluation.RegressionEvaluator
-
 object Main {
-  Logger.getLogger("org").setLevel(Level.ERROR)
-  Logger.getLogger("akka").setLevel(Level.ERROR)
+//  Logger.getLogger("org").setLevel(Level.ERROR)
+//  Logger.getLogger("akka").setLevel(Level.ERROR)
 
   def getFileName(path: String) = {
     val paths: Array[String] = path.split("/")
@@ -27,11 +26,14 @@ object Main {
   //Join 3 datasets (Products, Descriptions, Attributes)
   def joinDatasets(session: SparkSession) : Dataset[Row]= {
     val fullSchemaDF = session.sql("Select tr.product_title, tr.search_term, tr.relevance as label" +
-      " , IFNULL(attr.name, '') as name, IFNULL(attr.value, '') as value, pr.product_description from train tr left join attributes attr on" +
-      " tr.product_uid == attr.product_uid left join product_descriptions pr on tr.product_uid == pr.product_uid")
+    //  " , IFNULL(attr.name, '') as name, IFNULL(attr.value, '') as value
+      ", pr.product_description from train tr "
+      //left join attributes attr on" +
+      //" tr.product_uid == attr.product_uid"
+    + "left join product_descriptions pr on tr.product_uid == pr.product_uid")
 
     //Partition dataframe
-    fullSchemaDF.repartition(4)
+    //fullSchemaDF.repartition(4)
 
     fullSchemaDF
   }
@@ -94,10 +96,6 @@ object Main {
       completeDF = idf(completeDF, "hash_" + row, row)
     }
 
-    //Create all features column
-    val assembler = new VectorAssembler().setInputCols(columns).setOutputCol("all_features")
-    completeDF = assembler.transform(completeDF)
-
     //Return dataframe
     completeDF
   }
@@ -120,8 +118,10 @@ object Main {
     // Split the data into training and test sets (30% held out for testing)
     val Array(trainingData, testData) = dataframe.randomSplit(Array(0.7, 0.3), seed = 1234L)
 
-    //Train dataset with linear regression algorithm
-        // Train a DecisionTree model.
+    print("split completed")
+
+
+    // Train a DecisionTree model.
     val dt = new DecisionTreeRegressor()
       .setLabelCol("label")
       .setFeaturesCol("all_features")
@@ -135,7 +135,7 @@ object Main {
     val predictions = model.transform(testData)
 
     // Select example rows to display.
-    //predictions.select("prediction", "label", "features").show(5)
+    predictions.select("prediction", "label", "features").show(5)
 
     // Select (prediction, true label) and compute test error.
     val evaluator = new RegressionEvaluator()
@@ -148,10 +148,12 @@ object Main {
     val treeModel = model.asInstanceOf[DecisionTreeRegressionModel]
     println("Learned regression tree model:\n" + treeModel.toDebugString)
 
+
+    //Train dataset with linear regression algorithm
     /*val lrModel = new LinearRegression()
-      .setMaxIter(10000)
-      .setRegParam(0.1)
-      .setElasticNetParam(0.0)
+      /*.setMaxIter(10)
+      .setRegParam(0.3)
+      .setElasticNetParam(0.8)*/
       .setFeaturesCol("all_features")
       .fit(trainingData)
 
@@ -164,8 +166,8 @@ object Main {
     println(s"objectiveHistory: [${trainingSummary.objectiveHistory.mkString(",")}]")
     trainingSummary.residuals.show()
     println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
-    println(s"r2: ${trainingSummary.r2}")
-*/
+    println(s"r2: ${trainingSummary.r2}")*/
+
     /*val predictionsLR = LRmodel.transform(testData)
 
     predictionsLR.printSchema()
@@ -202,7 +204,7 @@ object Main {
     val fullSchemaDF = joinDatasets(ss)
 
     //Tokenization and tfidf for string features
-    val tokenizedDF = text_preprocessing(fullSchemaDF, Array("product_title", "product_description", "name", "search_term", "value"))
+    val tokenizedDF = text_preprocessing(fullSchemaDF, Array("product_title", "product_description", "search_term")) // "name", "value"))
 
     //To cast to Double
     import org.apache.spark.sql.types._
@@ -218,7 +220,11 @@ object Main {
 
     println("BEFORE TRAINING")
 
-    RunLinearRegression(completeDF)
+    //Create all features column
+    val assembler = new VectorAssembler().setInputCols(Array("product_title", "product_description", "search_term")).setOutputCol("all_features")
+    val c1 = assembler.transform(completeDF)
+
+    RunLinearRegression(c1)
 
    }
 }
