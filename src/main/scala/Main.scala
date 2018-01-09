@@ -24,9 +24,9 @@ object Main {
 
   //Join 3 datasets (Products, Descriptions, Attributes)
   def joinDatasets(session: SparkSession) : Dataset[Row]= {
-    val fullSchemaDF = session.sql("Select tr.product_title, tr.search_term, tr.relevance as label" +
-      " , IFNULL(attr.name, '') as name, IFNULL(attr.value, '') as value, pr.product_description from train tr left join attributes attr on" +
-      " tr.product_uid == attr.product_uid left join product_descriptions pr on tr.product_uid == pr.product_uid")
+    val fullSchemaDF = session.sql("Select concat(tr.product_title, tr.search_term, pr.product_description) as text, tr.relevance as label" +
+    //  " , IFNULL(attr.name, '') as name, IFNULL(attr.value, '') as value, pr.product_description from train tr left join attributes attr on" +
+      " from train tr left join product_descriptions pr on tr.product_uid == pr.product_uid")
 
     //Partition dataframe
     fullSchemaDF.repartition(4)
@@ -131,8 +131,8 @@ object Main {
 
     // Summarize the model over the training set and print out some metrics
     val trainingSummary = lrModel.summary
-    println(s"numIterations: ${trainingSummary.totalIterations}")
-    println(s"objectiveHistory: [${trainingSummary.objectiveHistory.mkString(",")}]")
+    //println(s"numIterations: ${trainingSummary.totalIterations}")
+    //println(s"objectiveHistory: [${trainingSummary.objectiveHistory.mkString(",")}]")
     trainingSummary.residuals.show()
     println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
     println(s"r2: ${trainingSummary.r2}")
@@ -170,7 +170,7 @@ object Main {
     val fullSchemaDF = joinDatasets(ss)
 
     //Tokenization and tfidf for string features
-    val tokenizedDF = text_preprocessing(fullSchemaDF, Array("product_title", "product_description", "name", "search_term", "value"))
+    val tokenizedDF = text_preprocessing(fullSchemaDF, Array("text"))
 
     //To cast to Double
     import org.apache.spark.sql.types._
