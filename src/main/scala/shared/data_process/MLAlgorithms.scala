@@ -6,20 +6,21 @@ import org.apache.spark.sql
 import org.apache.spark.sql.Row
 import shared.data_process.MLAlgorithms
 
-class MLAlgorithms {
+class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercentage: Double) {
+  //Split and declare train/ test data on create
+  val (trainingData, testData) = splitData(dataset, trainPercentage, testPercentage)
 
-  private def splitData(dataframe: sql.Dataset[Row]) = {
+
+  //Split dataset
+  private def splitData(dataframe: sql.Dataset[Row], trainPercentage:Double, testPercentage: Double) = {
 
     // Split the data into training and test sets (30% held out for testing)
-    val Array(trainingData, testData) = dataframe.randomSplit(Array(0.8, 0.2), seed = 1234L)
+    val Array(trainingData, testData) = dataframe.randomSplit(Array(trainPercentage, testPercentage), seed = 1234L)
 
     (trainingData, testData)
   }
 
-  def RunLinearRegression(dataframe: sql.DataFrame) = {
-
-    val (trainingData, testData) = splitData(dataframe)
-
+  def RunLinearRegression() = {
     // Train a RandomForest model.
     val rf = new RandomForestRegressor()
       .setLabelCol("label")
