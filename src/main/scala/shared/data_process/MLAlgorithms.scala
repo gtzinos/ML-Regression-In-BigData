@@ -57,11 +57,11 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
   }
 
-  def RunDecisionTree() = {
+  def RunDecisionTree(maxCategories: Integer = 4) = {
     val featureIndexer = new VectorIndexer()
       .setInputCol("all_features")
       .setOutputCol("indexedFeatures")
-      .setMaxCategories(4)
+      .setMaxCategories(maxCategories)
       .fit(dataset)
 
     // Train a DecisionTree model.
