@@ -34,16 +34,19 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     // Summarize the model over the training set and print out some metrics
     val trainingSummary = lrModel.summary
 
+    val predictions = lrModel.transform(testData)
+
     if(fullSummary) {
       println(s"numIterations: ${trainingSummary.totalIterations}")
       println(s"objectiveHistory: [${trainingSummary.objectiveHistory.mkString(",")}]")
+      
       trainingSummary.residuals.show()
+
       println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
       println(s"r2: ${trainingSummary.r2}")
-    }
 
-    val predictions = lrModel.transform(testData)
-    predictions.select("prediction", "label").show(50, false)
+      predictions.select("prediction", "label").show(50, false)
+    }
 
     val evaluator = new RegressionEvaluator()
       .setLabelCol("label")
