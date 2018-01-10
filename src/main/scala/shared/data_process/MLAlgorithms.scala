@@ -57,7 +57,7 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
   }
 
-  def RunDecisionTree(dataset: sql.Dataset[Row]) = {
+  def RunDecisionTree() = {
     val featureIndexer = new VectorIndexer()
       .setInputCol("all_features")
       .setOutputCol("indexedFeatures")
@@ -124,5 +124,46 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
       println("Learned regression forest model:\n" + rfModel.toDebugString)
     }
 
+  }
+
+  def RunGBTRegressor() = {
+    val featureIndexer = new VectorIndexer()
+      .setInputCol("all_features")
+      .setOutputCol("indexedFeatures")
+      .setMaxCategories(4)
+      .fit(dataset)
+
+    // Train a GBT model.
+    val gbt = new GBTRegressor()
+      .setLabelCol("label")
+      .setFeaturesCol("indexedFeatures")
+      .setMaxIter(10)
+
+    // Chain indexer and GBT in a Pipeline.
+    val pipeline = new Pipeline()
+      .setStages(Array(featureIndexer, gbt))
+
+    // Train model. This also runs the indexer.
+    val model = pipeline.fit(trainingData)
+
+    // Make predictions.
+    val predictions = model.transform(testData)
+
+    if(fullSummary) {
+      // Select example rows to display.
+      predictions.select("prediction", "label", "features").show(5)
+
+      val gbtModel = model.stages(1).asInstanceOf[GBTRegressionModel]
+      println("Learned regression GBT model:\n" + gbtModel.toDebugString)
+    }
+
+    // Select (prediction, true label) and compute test error.
+    val evaluator = new RegressionEvaluator()
+      .setLabelCol("label")
+      .setPredictionCol("prediction")
+      .setMetricName("rmse")
+
+    val rmse = evaluator.evaluate(predictions)
+    println("Root Mean Squared Error (RMSE) on test data = " + rmse)
   }
 }
