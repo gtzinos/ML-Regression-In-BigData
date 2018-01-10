@@ -29,8 +29,8 @@ class PreProcessing {
     tokenized
   }
 
-  def tf(dataframe: sql.Dataset[Row], inputColumn: String, outputColumn:String): sql.Dataset[Row] = {
-    val hashingTF = new HashingTF().setInputCol(inputColumn).setOutputCol(outputColumn)setNumFeatures(16384)
+  def tf(dataframe: sql.Dataset[Row], inputColumn: String, outputColumn:String, numFeatures: Int): sql.Dataset[Row] = {
+    val hashingTF = new HashingTF().setInputCol(inputColumn).setOutputCol(outputColumn)setNumFeatures(numFeatures)
 
     val hashed = hashingTF.transform(dataframe)
     //delete old column
@@ -51,7 +51,7 @@ class PreProcessing {
   }
 
   //Tokenization and tfidf for string features
-  def text_preprocessing(dataframe: Dataset[Row], columns: Array[String]): sql.DataFrame  = {
+  def text_preprocessing(dataframe: Dataset[Row], columns: Array[String], numFeatures: Int): sql.DataFrame  = {
     //global dataframe
     var completeDF:sql.DataFrame = dataframe
 
@@ -60,7 +60,7 @@ class PreProcessing {
     for(row <- columns) {
       completeDF = tokenized(completeDF, row, "token_" + row)
       completeDF = removeStopWords(completeDF, "token_" + row, "stopwords_" + row)
-      completeDF = tf(completeDF, "stopwords_" + row, "hash_" + row)
+      completeDF = tf(completeDF, "stopwords_" + row, "hash_" + row, numFeatures)
       completeDF = idf(completeDF, "hash_" + row, row)
     }
 
