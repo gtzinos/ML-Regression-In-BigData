@@ -39,7 +39,7 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     if(fullSummary) {
       println(s"numIterations: ${trainingSummary.totalIterations}")
       println(s"objectiveHistory: [${trainingSummary.objectiveHistory.mkString(",")}]")
-      
+
       trainingSummary.residuals.show()
 
       println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
@@ -79,9 +79,6 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     // Make predictions.
     val predictions = model.transform(testData)
 
-    // Select example rows to display.
-    predictions.select("prediction", "label", "features").show(5)
-
     // Select (prediction, true label) and compute test error.
     val evaluator = new RegressionEvaluator()
       .setLabelCol("label")
@@ -90,8 +87,13 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     val rmse = evaluator.evaluate(predictions)
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
 
-    val treeModel = model.stages(1).asInstanceOf[DecisionTreeRegressionModel]
-    println("Learned regression tree model:\n" + treeModel.toDebugString)
+    if(fullSummary) {
+      // Select example rows to display.
+      predictions.select("prediction", "label", "features").show(5)
+
+      val treeModel = model.stages(1).asInstanceOf[DecisionTreeRegressionModel]
+      println("Learned regression tree model:\n" + treeModel.toDebugString)
+    }
   }
 
   def RunRandomForestRegressor(numTrees: Int = 20, maxDepth: Int = 5) = {
