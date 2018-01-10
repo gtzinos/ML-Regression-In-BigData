@@ -6,6 +6,7 @@ import org.apache.spark.sql
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.ml.regression._
 import org.apache.spark.mllib.tree.DecisionTree
+import org.apache.spark.SparkConf
 import shared.data_process.{ImportDataset, MLAlgorithms, PreProcessing}
 object Main {
   Logger.getLogger("org").setLevel(Level.OFF)
@@ -40,8 +41,10 @@ object Main {
   //Main function
   def main(args: Array[String]): Unit = {
 
+    val conf = new SparkConf().set("spark.driver.maxResultSize", "8g")
+
     // Create the spark session first
-    val ss = SparkSession.builder().master("local").appName("tfidfApp").getOrCreate()
+    val ss = SparkSession.builder().config(conf).master("local").appName("tfidfApp").getOrCreate()
 
     // For implicit conversions like converting RDDs to DataFrames
     import ss.implicits._
