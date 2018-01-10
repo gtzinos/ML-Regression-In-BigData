@@ -88,7 +88,7 @@ object Main {
     mlAlgorithms.RunRandomForestRegressor()
 
     //Predictions from Decision Tree
-    mlAlgorithms.RunDecisionTree(10000)
+    mlAlgorithms.RunDecisionTree()
 
     //Predictions from GBT Regressor
     mlAlgorithms.RunGBTRegressor()
