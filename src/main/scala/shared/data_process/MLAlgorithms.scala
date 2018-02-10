@@ -11,6 +11,7 @@ import shared.data_process.MLAlgorithms
 class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercentage: Double, fullSummary: Boolean) {
   //Split and declare train/ test data on create
   val (trainingData, testData) = splitData(dataset, trainPercentage, testPercentage)
+  var allrmse : List[String] = List()
 
   //Split dataset
   private def splitData(dataset: sql.Dataset[Row], trainPercentage:Double, testPercentage: Double) = {
@@ -54,6 +55,10 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
       .setMetricName("rmse")
 
     val rmse = evaluator.evaluate(predictions)
+
+    allrmse.addString(new StringBuilder("Linear Regression: " + rmse.toString() + " maxItem=" + maxIter.toString() + " regParam="
+      + regParam.toString() + " elasticNetParam=" + elasticNetParam.toString()))
+
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
   }
 
@@ -87,6 +92,9 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     val rmse = evaluator.evaluate(predictions)
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
 
+
+    allrmse.addString(new StringBuilder("Decision Tree: " + rmse.toString() + " masxCategorie=" + maxCategories.toString()))
+
     if(fullSummary) {
       // Select example rows to display.
       predictions.select("prediction", "label", "features").show(5)
@@ -119,6 +127,9 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     val rmse = evaluator.evaluate(predictions)
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
 
+    allrmse.addString(new StringBuilder("Random Forest: " + rmse.toString() + " numTrees=" + numTrees.toString() + " maxDepth="
+      + maxDepth.toString()))
+
     if (fullSummary) {
       val rfModel = model.asInstanceOf[RandomForestRegressionModel]
       println("Learned regression forest model:\n" + rfModel.toDebugString)
@@ -126,11 +137,11 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
 
   }
 
-  def RunGBTRegressor() = {
+  def RunGBTRegressor(maxCategories: Integer=4) = {
     val featureIndexer = new VectorIndexer()
       .setInputCol("all_features")
       .setOutputCol("indexedFeatures")
-      .setMaxCategories(4)
+      .setMaxCategories(maxCategories)
       .fit(dataset)
 
     // Train a GBT model.
@@ -165,5 +176,11 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
 
     val rmse = evaluator.evaluate(predictions)
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
+
+    allrmse.addString(new StringBuilder("GBT Regression: " + rmse.toString() + " maxCategories=" + maxCategories.toString()))
+  }
+
+  def printErrors() = {
+    allrmse.foreach(println)
   }
 }
