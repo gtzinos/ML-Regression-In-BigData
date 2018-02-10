@@ -82,15 +82,40 @@ object Main {
     val mlAlgorithms = new MLAlgorithms(completeDF, 0.7, 0.3, false)
 
     //Predictions from Linear Regression
-    mlAlgorithms.RunLinearRegression(10000, 0.2, 0.05)
+    //mlAlgorithms.RunLinearRegression(10000, 0.2, 0.05)
 
+    mlAlgorithms.RunRandomForestRegressor(5, 5)
+    mlAlgorithms.RunRandomForestRegressor(10, 5)
+    mlAlgorithms.RunRandomForestRegressor(15, 5)
+    mlAlgorithms.RunRandomForestRegressor(20, 5)
+    mlAlgorithms.RunRandomForestRegressor(20, 10)
+
+
+    mlAlgorithms.RunDecisionTree(1)
+    mlAlgorithms.RunDecisionTree(2)
+    mlAlgorithms.RunDecisionTree(3)
+    mlAlgorithms.RunDecisionTree(4)
+    mlAlgorithms.RunDecisionTree(5)
+    mlAlgorithms.RunDecisionTree(6)
+    mlAlgorithms.RunDecisionTree(7)
+
+
+    mlAlgorithms.RunGBTRegressor(1)
+    mlAlgorithms.RunGBTRegressor(2)
+    mlAlgorithms.RunGBTRegressor(3)
+    mlAlgorithms.RunGBTRegressor(4)
+    mlAlgorithms.RunGBTRegressor(5)
+    mlAlgorithms.RunGBTRegressor(6)
+    mlAlgorithms.RunGBTRegressor(7)
+
+    mlAlgorithms.printErrors()
     //Predictions from RandonForest
-    mlAlgorithms.RunRandomForestRegressor()
+    //mlAlgorithms.RunRandomForestRegressor()
 
     //Predictions from Decision Tree
-    mlAlgorithms.RunDecisionTree()
+    //mlAlgorithms.RunDecisionTree()
 
     //Predictions from GBT Regressor
-    mlAlgorithms.RunGBTRegressor()
+    //mlAlgorithms.RunGBTRegressor()
    }
 }
