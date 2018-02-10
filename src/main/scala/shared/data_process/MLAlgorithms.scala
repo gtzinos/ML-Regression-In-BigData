@@ -7,11 +7,13 @@ import org.apache.spark.ml.regression._
 import org.apache.spark.sql
 import org.apache.spark.sql.Row
 import shared.data_process.MLAlgorithms
+import scala.collection.mutable.ListBuffer
 
 class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercentage: Double, fullSummary: Boolean) {
   //Split and declare train/ test data on create
   val (trainingData, testData) = splitData(dataset, trainPercentage, testPercentage)
-  var allrmse : List[String] = List()
+  var allrmse  = new ListBuffer[String]()
+
 
   //Split dataset
   private def splitData(dataset: sql.Dataset[Row], trainPercentage:Double, testPercentage: Double) = {
@@ -55,10 +57,9 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
       .setMetricName("rmse")
 
     val rmse = evaluator.evaluate(predictions)
-
-    allrmse.addString(new StringBuilder("Linear Regression: " + rmse.toString() + " maxItem=" + maxIter.toString() + " regParam="
-      + regParam.toString() + " elasticNetParam=" + elasticNetParam.toString()))
-
+    
+    allrmse += "Linear Regression: " + String.valueOf(rmse) + " maxItem=" + String.valueOf(maxIter) + " regParam=" + String.valueOf(regParam) + " elasticNetParam=" + String.valueOf(elasticNetParam)
+    
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
   }
 
@@ -93,8 +94,8 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
 
 
-    allrmse.addString(new StringBuilder("Decision Tree: " + rmse.toString() + " masxCategorie=" + maxCategories.toString()))
-
+    allrmse += "Decision Tree: " + String.valueOf(rmse) + " masxCategorie=" + String.valueOf(maxCategories)
+    
     if(fullSummary) {
       // Select example rows to display.
       predictions.select("prediction", "label", "features").show(5)
@@ -127,9 +128,8 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     val rmse = evaluator.evaluate(predictions)
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
 
-    allrmse.addString(new StringBuilder("Random Forest: " + rmse.toString() + " numTrees=" + numTrees.toString() + " maxDepth="
-      + maxDepth.toString()))
-
+    allrmse += "Random Forest: " + String.valueOf(rmse) + " numTrees=" + String.valueOf(numTrees) + " maxDepth=" + String.valueOf(maxDepth)
+    
     if (fullSummary) {
       val rfModel = model.asInstanceOf[RandomForestRegressionModel]
       println("Learned regression forest model:\n" + rfModel.toDebugString)
@@ -177,9 +177,9 @@ class MLAlgorithms(dataset: sql.Dataset[Row], trainPercentage:Double, testPercen
     val rmse = evaluator.evaluate(predictions)
     println("Root Mean Squared Error (RMSE) on test data = " + rmse)
 
-    allrmse.addString(new StringBuilder("GBT Regression: " + rmse.toString() + " maxCategories=" + maxCategories.toString()))
+    allrmse += "GBT Regression: " + String.valueOf(rmse) + " maxCategories=" + String.valueOf(maxCategories)
   }
-
+  
   def printErrors() = {
     allrmse.foreach(println)
   }
