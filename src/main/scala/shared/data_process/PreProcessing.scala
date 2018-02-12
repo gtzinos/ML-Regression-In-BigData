@@ -8,7 +8,7 @@ class PreProcessing {
 
   def removeStopWords(dataframe: sql.Dataset[Row], inputColumn: String, outputColumn:String): sql.Dataset[Row] = {
     val clear = new StopWordsRemover()
-      .setCaseSensitive(true)
+      .setCaseSensitive(false)
       .setStopWords(StopWordsRemover.loadDefaultStopWords("english"))
       .setInputCol(inputColumn)
       .setOutputCol(outputColumn)
